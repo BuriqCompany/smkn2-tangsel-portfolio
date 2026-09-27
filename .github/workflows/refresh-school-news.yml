@@ -1,0 +1,45 @@
+name: Refresh school news
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/refresh_news.py'
+      - '.github/workflows/refresh-school-news.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-school-news
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out site
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Fetch the latest three school news items
+        run: python scripts/refresh_news.py
+
+      - name: Commit feed when it changes
+        run: |
+          if git diff --quiet -- data/news.json; then
+            echo 'News feed has not changed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/news.json
+          git commit -m 'Refresh school news feed'
+          git push

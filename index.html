@@ -135,6 +135,7 @@
     .news-body h3 { font-size: 14px; letter-spacing: -.035em; line-height: 1.5; margin: 10px 0 8px; }
     .news-body p { color: var(--muted); font-size: 10px; line-height: 1.75; margin: 0; }
     .news-body .major-link { margin-top: 14px; }
+    .news-updated { margin: -13px 0 20px; color: #8793a4; font-size: 9px; }
     footer { padding: 60px 0 115px; }
     .footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 30px; }
     .footer-intro p { max-width: 310px; color: var(--muted); font-size: 11px; line-height: 1.8; margin-top: 16px; }
@@ -301,11 +302,9 @@
     <section class="section" id="informasi">
       <div class="container">
         <div class="section-heading"><div><span class="section-kicker">Kabar sekolah</span><h2>Informasi terkini.</h2></div><a class="major-link" href="https://smkn2tangsel.sch.id/news" target="_blank" rel="noreferrer">Semua berita <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
-        <div class="news-grid">
-          <article class="glass-card news-card reveal"><div class="news-image news-image--one"><span class="news-tag">Pengumuman</span></div><div class="news-body"><span class="news-date">INFORMASI SEKOLAH · 2026</span><h3>Pengumuman kelulusan SMKN 2 Kota Tangerang Selatan</h3><p>Selamat kepada para lulusan angkatan 2026. Terus melangkah menuju masa depan dengan semangat dan keyakinan.</p><a class="major-link" href="https://smkn2tangsel.sch.id/" target="_blank" rel="noreferrer">Kunjungi situs resmi <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></article>
-          <article class="glass-card news-card reveal"><div class="news-image news-image--two"><span class="news-tag">Prestasi</span></div><div class="news-body"><span class="news-date">22 JUNI 2022</span><h3>SMKN 2 Tangsel terpilih sebagai SMK Pusat Keunggulan</h3><p>Sekolah terpilih dalam Program SMK Pusat Keunggulan untuk program keahlian Teknik Kendaraan Ringan Otomotif.</p><a class="major-link" href="https://smkn2tangsel.sch.id/content2News" target="_blank" rel="noreferrer">Baca selengkapnya <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></article>
-          <article class="glass-card news-card reveal"><div class="news-image news-image--three"><span class="news-tag">Alumni</span></div><div class="news-body"><span class="news-date">KARIER & KELANJUTAN</span><h3>Terhubung dengan keluarga besar alumni</h3><p>Jaga silaturahmi dan dukung peningkatan kualitas lulusan melalui kanal alumni dan BKK sekolah.</p><a class="major-link" href="https://smkn2tangsel.sch.id/bkk" target="_blank" rel="noreferrer">Info BKK sekolah <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></article>
-        </div>
+        <p class="news-updated" id="newsUpdated" aria-live="polite">Berita terbaru dari situs resmi sekolah</p>
+        <div class="news-grid" id="newsGrid" aria-live="polite" aria-busy="true"></div>
+        <noscript><p>Aktifkan JavaScript untuk melihat tiga berita terbaru yang diperbarui otomatis.</p></noscript>
       </div>
     </section>
 
@@ -332,6 +331,60 @@
 
   <script>
     (() => {
+      const newsGrid = document.getElementById('newsGrid');
+      const newsUpdated = document.getElementById('newsUpdated');
+      const renderLatestNews = async () => {
+        try {
+          const response = await fetch(`./data/news.json?t=${Date.now()}`, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`Feed HTTP ${response.status}`);
+          const feed = await response.json();
+          const items = Array.isArray(feed.items) ? feed.items.slice(0, 3) : [];
+          if (!items.length) throw new Error('Feed berita kosong');
+
+          newsGrid.replaceChildren(...items.map(item => {
+            const article = document.createElement('article');
+            article.className = 'glass-card news-card reveal is-visible';
+            const image = document.createElement('div');
+            image.className = 'news-image';
+            image.style.backgroundImage = `url("${String(item.image || '').replace(/["\\]/g, '')}")`;
+            const tag = document.createElement('span');
+            tag.className = 'news-tag';
+            tag.textContent = 'Berita sekolah';
+            image.append(tag);
+
+            const body = document.createElement('div');
+            body.className = 'news-body';
+            const date = document.createElement('span');
+            date.className = 'news-date';
+            date.textContent = item.date || 'Berita terbaru';
+            const title = document.createElement('h3');
+            title.textContent = item.title || 'Berita sekolah';
+            const description = document.createElement('p');
+            description.textContent = item.description || '';
+            const link = document.createElement('a');
+            link.className = 'major-link';
+            link.href = item.url || feed.source || 'https://smkn2tangsel.sch.id/news';
+            link.target = '_blank';
+            link.rel = 'noreferrer';
+            link.textContent = 'Baca selengkapnya →';
+            body.append(date, title, description, link);
+            article.append(image, body);
+            return article;
+          }));
+
+          const updated = new Date(feed.updatedAt);
+          newsUpdated.textContent = Number.isNaN(updated.getTime())
+            ? 'Berita terbaru dari situs resmi sekolah'
+            : `3 berita terbaru · diperbarui ${new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(updated)} WIB`;
+          newsGrid.setAttribute('aria-busy', 'false');
+        } catch (error) {
+          console.warn('Feed berita sekolah belum dapat dimuat:', error);
+          newsGrid.innerHTML = '<p>Berita belum dapat dimuat saat ini. <a href="https://smkn2tangsel.sch.id/news" target="_blank" rel="noreferrer">Lihat berita di situs resmi ↗</a></p>';
+          newsGrid.setAttribute('aria-busy', 'false');
+        }
+      };
+      renderLatestNews();
+
       const bottomGlow = document.getElementById('bottomGlow');
       const topGlow = document.querySelector('.ambient--top');
       const siteHeader = document.querySelector('.site-header');
