@@ -349,7 +349,7 @@
             image.style.backgroundImage = `url("${String(item.image || '').replace(/["\\]/g, '')}")`;
             const tag = document.createElement('span');
             tag.className = 'news-tag';
-            tag.textContent = 'Berita sekolah';
+            tag.textContent = item.category || 'Berita sekolah';
             image.append(tag);
 
             const body = document.createElement('div');
